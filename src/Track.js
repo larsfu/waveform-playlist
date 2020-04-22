@@ -35,6 +35,7 @@ export default class {
     this.startTime = 0;
     this.endTime = 0;
     this.stereoPan = 0;
+    this.recorded = false;
   }
 
   setEventEmitter(ee) {
@@ -228,6 +229,10 @@ export default class {
     this.playout.setStereoPanValue(value);
   }
 
+  setRecorded() {
+    this.recorded = true;
+  }
+
   /*
     startTime, endTime in seconds (float).
     segment is for a highlighted section in the UI.
@@ -369,16 +374,28 @@ export default class {
       }, [
         h('header', [this.name]),
         h('div.btn-group', [
-          h(`span.btn.btn-default.btn-xs.btn-mute${muteClass}`, {
+          h(`span.btn.btn-outline-dark.btn-xs.btn-mute${muteClass}`, {
             onclick: () => {
               this.ee.emit('mute', this);
             },
           }, ['Mute']),
-          h(`span.btn.btn-default.btn-xs.btn-solo${soloClass}`, {
+          h(`span.btn.btn-outline-dark.btn-xs.btn-solo${soloClass}`, {
             onclick: () => {
               this.ee.emit('solo', this);
             },
           }, ['Solo']),
+          this.recorded?
+            (h(`span.btn.btn-outline-dark.btn-xs.upload-btn`, {
+              onclick: () => {
+                this.ee.emit('upload', this);
+              },
+            }, [h('i.fa.fa-cloud-upload')])) : null,
+          this.recorded?
+            (h(`span.btn.btn-outline-danger.btn-xs`, {
+              onclick: () => {
+                this.ee.emit('remove', this);
+              },
+            }, [h('i.fa.fa-times')])) : null,
         ]),
         h('label', [
           h('input.volume-slider', {

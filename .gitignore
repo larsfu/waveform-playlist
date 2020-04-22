@@ -1,7 +1,9 @@
+package-lock.json
 /node_modules
 /coverage
 
 # compiled files
+/dist
 /lib
 .sass-cache
 /styles

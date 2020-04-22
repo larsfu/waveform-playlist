@@ -51,9 +51,11 @@ export default class {
 
     this.mediaRecorder.onstart = () => {
       const track = new Track();
-      track.setName('Recording');
+      track.setName('Aufnahme');
       track.setEnabledStates();
       track.setEventEmitter(this.ee);
+      track.setRecorded();
+      track.setStartTime(this.cursor);
 
       this.recordingTrack = track;
       this.tracks.push(track);
@@ -239,6 +241,12 @@ export default class {
 
     ee.on('mute', (track) => {
       this.muteTrack(track);
+      this.adjustTrackPlayout();
+      this.drawRequest();
+    });
+
+    ee.on('remove', (track) => {
+      this.removeTrack(track);
       this.adjustTrackPlayout();
       this.drawRequest();
     });
@@ -555,6 +563,32 @@ export default class {
     }
   }
 
+  removeTrack(track) {
+    this.ee.emit("stop");
+    const index = this.tracks.indexOf(track);
+    if (index == -1) return;
+    return this.stop().then(() => {
+      this.tracks.splice(index, 1);
+      var soloIndex = this.soloedTracks.indexOf(track);
+      if(soloIndex > -1)
+        this.soloedTracks.splice(soloIndex, 1);
+
+      var muteIndex = this.mutedTracks.indexOf(track);
+      if(muteIndex > -1)
+        this.mutedTracks.splice(muteIndex, 1);
+      this.playoutPromises = [];
+
+      /*this.cursor = 0;
+      this.playbackSeconds = 0;
+      this.duration = 0;
+      this.scrollLeft = 0;
+
+      this.seek(0, 0, undefined);*/
+      this.adjustDuration();
+      this.draw(this.render());
+    });
+  }
+
   adjustTrackPlayout() {
     this.tracks.forEach((track) => {
       track.setShouldPlay(this.shouldTrackPlay(track));
@@ -621,7 +655,7 @@ export default class {
     return Promise.all(this.playoutPromises).then(this.play.bind(this, start, end));
   }
 
-  play(startTime, endTime) {
+  play(startTime, endTime, disableAnimation) {
     clearTimeout(this.resetDrawTimer);
 
     const currentTime = this.ac.currentTime;
@@ -650,7 +684,8 @@ export default class {
     this.lastPlay = currentTime;
     // use these to track when the playlist has fully stopped.
     this.playoutPromises = playoutPromises;
-    this.startAnimation(start);
+    if(disableAnimation != true)
+      this.startAnimation(start);
 
     return Promise.all(this.playoutPromises);
   }
@@ -723,17 +758,20 @@ export default class {
   }
 
   record() {
+    this.stop().then(() => {
     const playoutPromises = [];
-    this.mediaRecorder.start(300);
+      setTimeout(() => this.mediaRecorder.start(300), 100);
 
-    this.tracks.forEach((track) => {
-      track.setState('none');
-      playoutPromises.push(track.schedulePlay(this.ac.currentTime, 0, undefined, {
-        shouldPlay: this.shouldTrackPlay(track),
-      }));
+      /*this.tracks.forEach((track) => {
+        track.setState('none');
+        playoutPromises.push(track.schedulePlay(this.ac.currentTime, 0, undefined, {
+          shouldPlay: this.shouldTrackPlay(track),
+        }));
+      });
+
+      this.playoutPromises = playoutPromises;*/
+      this.play(null, null, true);
     });
-
-    this.playoutPromises = playoutPromises;
   }
 
   startAnimation(startTime) {
